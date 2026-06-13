@@ -441,6 +441,11 @@ perderVida() {
     const citizenGraphics = this.make.graphics({ x: 0, y: 0, add: false });
     citizenGraphics.fillStyle(0xFFFF00, 1);
     citizenGraphics.fillRect(0, 0, 24, 24);
+    // Cara miedosa
+    citizenGraphics.fillStyle(0x000000, 1);
+    citizenGraphics.fillRect(5, 6, 4, 4);  // Ojo izquierdo
+    citizenGraphics.fillRect(15, 6, 4, 4); // Ojo derecho
+    citizenGraphics.fillRect(7, 16, 10, 3); // Boca de preocupación
     citizenGraphics.generateTexture("citizen-texture", 24, 24);
     citizenGraphics.destroy();
 

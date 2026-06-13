@@ -115,7 +115,10 @@ export default class Level3Scene extends Phaser.Scene {
   transformarEnPollo(egg) {
     const chick = this.chickens.create(egg.x, egg.y, 'chicken-texture');
     chick.setVelocityX(120).setCollideWorldBounds(true).direction = 1; 
-    if (chick.body) chick.body.setGravityY(200);
+    if (chick.body) {
+      chick.body.setGravityY(200);
+      chick.body.setSize(14, 14, true);
+    }
     egg.destroy();
   }
 
@@ -141,6 +144,15 @@ export default class Level3Scene extends Phaser.Scene {
     this.player = this.physics.add.sprite(50, 540, null);
     const g = this.make.graphics({x:0,y:0,add:false}); g.fillStyle(0x0000FF,1); g.fillRect(0,0,30,30); g.generateTexture('p-l3',30,30); g.destroy();
     this.player.setTexture('p-l3').setCollideWorldBounds(true); this.physics.add.collider(this.player, this.platforms);
+
+    // Generar textura del ciudadano amarillo con cara miedosa
+    const cG = this.make.graphics({ x: 0, y: 0, add: false });
+    cG.fillStyle(0xFFFF00, 1); cG.fillRect(0, 0, 24, 24);
+    cG.fillStyle(0x000000, 1);
+    cG.fillRect(5, 6, 4, 4);  // Ojo izquierdo
+    cG.fillRect(15, 6, 4, 4); // Ojo derecho
+    cG.fillRect(7, 16, 10, 3); // Boca de preocupación
+    cG.generateTexture("citizen-texture", 24, 24); cG.destroy();
 
     this.minibosses = this.physics.add.group(); 
     this.physics.add.collider(this.minibosses, this.platforms);

@@ -99,8 +99,12 @@ export default class Level2Scene extends Phaser.Scene {
   transformarEnPollo(egg) {
     const chick = this.chickens.create(egg.x, egg.y, null);
     const g = this.make.graphics({x:0,y:0,add:false}); g.fillStyle(0xFF0000,1); g.fillTriangle(10,0,0,16,20,16); g.generateTexture('ch-l2',20,16); g.destroy();
-    chick.setTexture('ch-l2').setVelocityX(120).setCollideWorldBounds(true).direction = 1; egg.destroy();
-    if (chick.body) chick.body.setGravityY(200);
+    chick.setTexture('ch-l2').setVelocityX(120).setCollideWorldBounds(true).direction = 1;
+    if (chick.body) {
+      chick.body.setGravityY(200);
+      chick.body.setSize(14, 14, true);
+    }
+    egg.destroy();
   }
 
   create() {
