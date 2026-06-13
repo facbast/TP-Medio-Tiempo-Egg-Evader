@@ -251,7 +251,14 @@ export default class HelloWorldScene extends Phaser.Scene {
     this.physics.add.collider(this.player, this.platforms);
 
     this.citizens = this.physics.add.group({ allowGravity: false, immovable: true });
-    const cG = this.make.graphics({ x: 0, y: 0, add: false }); cG.fillStyle(0xFFFF00, 1); cG.fillRect(0, 0, 24, 24); cG.generateTexture("citizen-texture", 24, 24); cG.destroy();
+    const cG = this.make.graphics({ x: 0, y: 0, add: false }); 
+    cG.fillStyle(0xFFFF00, 1); cG.fillRect(0, 0, 24, 24); // Cuerpo
+    // Cara miedosa
+    cG.fillStyle(0x000000, 1);
+    cG.fillRect(5, 6, 4, 4);  // Ojo izquierdo
+    cG.fillRect(15, 6, 4, 4); // Ojo derecho
+    cG.fillRect(7, 16, 10, 3); // Boca de preocupación/temblor
+    cG.generateTexture("citizen-texture", 24, 24); cG.destroy();
 
     this.savePromptText = this.add.text(width / 2, height - 40, "", { fontSize: "18px", fill: "#ffffff", fontFamily: "Arial" }).setOrigin(0.5, 0.5).setScrollFactor(0);
     this.scoreText = this.add.text(width - 20, 20, "Puntaje: 0", { fontSize: "18px", fill: "#ffffff", fontFamily: "Arial", stroke: "#000000", strokeThickness: 3 }).setOrigin(1, 0).setScrollFactor(0);

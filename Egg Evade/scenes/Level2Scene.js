@@ -33,7 +33,9 @@ export default class Level2Scene extends Phaser.Scene {
     this.levelComplete = true; this.isPaused = true; this.physics.world.pause(); this.time.timeScale = 0;
     const winBg = this.add.rectangle(400, 300, 600, 200, 0x000000, 0.7).setDepth(1001);
     this.add.text(400, 280, '¡Nivel completado!', { fontSize: '32px', fill: '#ffffff' }).setOrigin(0.5).setDepth(1001);
-    this.enterKey.off('down').on('down', () => {
+    this.add.text(400, 340, 'Presiona ENTER para ir al Nivel 3', { fontSize: '18px', fill: '#ffffff' }).setOrigin(0.5).setDepth(1001);
+    
+    this.input.keyboard.once('keydown-ENTER', () => {
       this.physics.world.resume(); this.time.timeScale = 1;
       this.scene.start('level3', { score: this.score, health: this.health, lives: this.lives, rescued: this.rescuedCitizens });
     });
@@ -83,7 +85,14 @@ export default class Level2Scene extends Phaser.Scene {
   spawnCitizen() {
     const p = Phaser.Utils.Array.GetRandom(this.platforms.getChildren());
     const c = this.citizens.create(p.x, p.y - 30, null);
-    const g = this.make.graphics({x:0,y:0,add:false}); g.fillStyle(0xFFFF00, 1); g.fillRect(0,0,24,24); g.generateTexture('cit-l2',24,24); g.destroy();
+    const g = this.make.graphics({x:0,y:0,add:false}); 
+    g.fillStyle(0xFFFF00, 1); g.fillRect(0,0,24,24); // Cuerpo
+    // Cara miedosa
+    g.fillStyle(0x000000, 1);
+    g.fillRect(5, 6, 4, 4);  // Ojo izquierdo
+    g.fillRect(15, 6, 4, 4); // Ojo derecho
+    g.fillRect(7, 16, 10, 3); // Boca de preocupación
+    g.generateTexture('cit-l2',24,24); g.destroy();
     c.setTexture('cit-l2').setDisplaySize(24,24).setImmovable(true); if (c.body) c.body.setAllowGravity(false);
   }
 
@@ -91,6 +100,7 @@ export default class Level2Scene extends Phaser.Scene {
     const chick = this.chickens.create(egg.x, egg.y, null);
     const g = this.make.graphics({x:0,y:0,add:false}); g.fillStyle(0xFF0000,1); g.fillTriangle(10,0,0,16,20,16); g.generateTexture('ch-l2',20,16); g.destroy();
     chick.setTexture('ch-l2').setVelocityX(120).setCollideWorldBounds(true).direction = 1; egg.destroy();
+    if (chick.body) chick.body.setGravityY(200);
   }
 
   create() {
@@ -112,6 +122,7 @@ export default class Level2Scene extends Phaser.Scene {
     this.physics.add.overlap(this.player, this.chickens, (p, c) => { if (p.body.touching.down && c.body.touching.up) c.destroy(); else this.aplicarDaño(); });
     this.physics.add.collider(this.chickens, this.platforms, c => { if (c.body.blocked.left || c.body.blocked.right) { c.direction *= -1; c.setVelocityX(120 * c.direction); } });
 
+    this.savePromptText = this.add.text(400, 560, "", { fontSize: "18px", fill: "#ffffff", fontFamily: "Arial" }).setOrigin(0.5, 0.5).setScrollFactor(0);
     this.scoreText = this.add.text(780, 20, `Puntaje: ${this.score}`, { fontSize: '18px', fill: '#ffffff', stroke: '#000000', strokeThickness: 3 }).setOrigin(1, 0).setScrollFactor(0);
     this.levelTimerText = this.add.text(400, 10, '02:00', { fontSize: '22px', fill: '#ffffff', stroke: '#000000', strokeThickness: 3 }).setOrigin(0.5, 0).setScrollFactor(0);
     this.livesText = this.add.text(20, 45, `Vidas: ${this.lives}`, { fontSize: '18px', fill: '#ffffff', stroke: '#000000', strokeThickness: 3 }).setScrollFactor(0);
@@ -137,6 +148,14 @@ export default class Level2Scene extends Phaser.Scene {
     }
     if (this.cursors.left.isDown) this.player.setVelocityX(-200); else if (this.cursors.right.isDown) this.player.setVelocityX(200); else this.player.setVelocityX(0);
     if (this.zKey.isDown && this.player.body.touching.down) this.player.setVelocityY(-350);
+
+    let near = null;
+    this.citizens.getChildren().forEach(c => { if (Phaser.Math.Distance.Between(c.x, c.y, this.player.x, this.player.y) < 40) near = c; });
+    if (near) {
+      this.savePromptText.setText("Presiona S para salvar al ciudadano");
+      if (Phaser.Input.Keyboard.JustDown(this.sKey)) { near.destroy(); this.rescuedCitizens++; this.cambiarPuntaje(2000); }
+    } else this.savePromptText.setText("");
+
     this.eggs.getChildren().forEach(e => { if (e && this.time.now - e.birthTime >= 10000) this.transformarEnPollo(e); });
     if (this.time.now - this.lastHitTime >= this.damageCooldown) this.player.setAlpha(1);
   }
