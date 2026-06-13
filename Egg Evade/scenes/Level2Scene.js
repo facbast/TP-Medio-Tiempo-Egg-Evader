@@ -75,9 +75,8 @@ export default class Level2Scene extends Phaser.Scene {
 
   spawnEgg() {
     const x = Phaser.Math.Between(50, 750);
-    const egg = this.eggs.create(x, -20, null);
-    const g = this.make.graphics({x:0,y:0,add:false}); g.fillStyle(0xFF0000, 1); g.fillCircle(8,8,8); g.generateTexture('egg-l2',16,16); g.destroy();
-    egg.setTexture('egg-l2').setVelocityY(this.currentEggSpeed).setBounce(0.3); egg.birthTime = this.time.now;
+    const egg = this.eggs.create(x, -20, 'egg-texture');
+    egg.setVelocityY(this.currentEggSpeed).setBounce(0.3); egg.birthTime = this.time.now;
     this.time.delayedCall(this.currentEggDelay, this.spawnEgg, [], this);
   }
 

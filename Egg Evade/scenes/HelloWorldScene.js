@@ -4,15 +4,16 @@ export default class HelloWorldScene extends Phaser.Scene {
   }
 
   createPauseUI() {
-    const bg = this.add.rectangle(400, 300, 800, 600, 0x000000, 0.6);
-    const box = this.add.rectangle(400, 300, 400, 260, 0x222222, 0.95);
-    const title = this.add.text(400, 240, 'PAUSA', { fontSize: '36px', fill: '#ffffff', fontFamily: 'Arial' }).setOrigin(0.5, 0.5);
+    const { width, height } = this.scale;
+    const bg = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.6);
+    const box = this.add.rectangle(width / 2, height / 2, 400, 260, 0x222222, 0.95);
+    const title = this.add.text(width / 2, height / 2 - 60, 'PAUSA', { fontSize: '36px', fill: '#ffffff', fontFamily: 'Arial' }).setOrigin(0.5, 0.5);
 
-    const resumeRect = this.add.rectangle(400, 320, 220, 50, 0x00aa00).setInteractive();
-    const resumeText = this.add.text(400, 320, 'Volver al juego', { fontSize: '20px', fill: '#000000' }).setOrigin(0.5);
+    const resumeRect = this.add.rectangle(width / 2, height / 2 + 20, 220, 50, 0x00aa00).setInteractive();
+    const resumeText = this.add.text(width / 2, height / 2 + 20, 'Volver al juego', { fontSize: '20px', fill: '#000000' }).setOrigin(0.5);
 
-    const menuRect = this.add.rectangle(400, 390, 220, 50, 0xaa0000).setInteractive();
-    const menuText = this.add.text(400, 390, 'Menu Principal', { fontSize: '20px', fill: '#000000' }).setOrigin(0.5);
+    const menuRect = this.add.rectangle(width / 2, height / 2 + 90, 220, 50, 0xaa0000).setInteractive();
+    const menuText = this.add.text(width / 2, height / 2 + 90, 'Menu Principal', { fontSize: '20px', fill: '#000000' }).setOrigin(0.5);
 
     resumeRect.on('pointerup', () => { this.resumeGame(); });
     resumeText.on('pointerup', () => { this.resumeGame(); });
@@ -56,9 +57,10 @@ export default class HelloWorldScene extends Phaser.Scene {
     if (this.physics && this.physics.world) this.physics.world.pause();
     if (this.time) this.time.timeScale = 0;
 
-    const winBg = this.add.rectangle(400, 300, 600, 200, 0x000000, 0.7).setDepth(1001);
-    const winText = this.add.text(400, 280, '¡Nivel completado!', { fontSize: '32px', fill: '#ffffff' }).setOrigin(0.5).setDepth(1001);
-    const contText = this.add.text(400, 340, 'Presiona ENTER para volver al menú', { fontSize: '18px', fill: '#ffffff' }).setOrigin(0.5).setDepth(1001);
+    const { width, height } = this.scale;
+    const winBg = this.add.rectangle(width / 2, height / 2, 600, 200, 0x000000, 0.7).setDepth(1001);
+    const winText = this.add.text(width / 2, height / 2 - 20, '¡Nivel completado!', { fontSize: '32px', fill: '#ffffff' }).setOrigin(0.5).setDepth(1001);
+    const contText = this.add.text(width / 2, height / 2 + 40, 'Presiona ENTER para volver al menú', { fontSize: '18px', fill: '#ffffff' }).setOrigin(0.5).setDepth(1001);
 
     this.enterKey.off('down');
     this.enterKey.on('down', () => { 
@@ -100,23 +102,40 @@ export default class HelloWorldScene extends Phaser.Scene {
     this.currentEggSpeed = 150;
   }
 
+  createTextures() {
+    // Generar texturas una sola vez para optimizar memoria
+    const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+    
+    // Corazón Lleno
+    graphics.clear();
+    graphics.fillStyle(0xFF0000, 1);
+    graphics.fillCircle(4, 4, 4); graphics.fillCircle(10, 4, 4);
+    graphics.fillTriangleShape([{ x: 2, y: 8 }, { x: 12, y: 8 }, { x: 7, y: 14 }]);
+    graphics.generateTexture('heart-full', 14, 14);
+
+    // Corazón Vacío
+    graphics.clear();
+    graphics.fillStyle(0x888888, 1);
+    graphics.fillCircle(4, 4, 4); graphics.fillCircle(10, 4, 4);
+    graphics.fillTriangleShape([{ x: 2, y: 8 }, { x: 12, y: 8 }, { x: 7, y: 14 }]);
+    graphics.generateTexture('heart-empty', 14, 14);
+
+    // Huevo
+    graphics.clear();
+    graphics.fillStyle(0xFF0000, 1);
+    graphics.fillCircle(8, 8, 8);
+    graphics.generateTexture('egg-texture', 16, 16);
+
+    graphics.destroy();
+  }
+
   dibujarVidas() {
     this.hearts.forEach(heart => heart.destroy());
     this.hearts = [];
     const totalHearts = Math.max(this.health, 3);
     for (let i = 0; i < totalHearts; i++) {
-      const x = 25 + (i * 35);
-      const y = 25;
-      const graphics = this.make.graphics({ x: 0, y: 0, add: false });
-      if (i < this.health) graphics.fillStyle(0xFF0000, 1); else graphics.fillStyle(0x888888, 1);
-      graphics.fillCircle(4, 4, 4);
-      graphics.fillCircle(10, 4, 4);
-      graphics.fillTriangleShape([{ x: 2, y: 8 }, { x: 12, y: 8 }, { x: 7, y: 14 }]);
-      graphics.generateTexture(`heart-${i}`, 14, 14);
-      graphics.destroy();
-      const heart = this.add.image(x, y, `heart-${i}`);
-      heart.setOrigin(0.5, 0.5);
-      heart.setScrollFactor(0);
+      const texture = i < this.health ? 'heart-full' : 'heart-empty';
+      const heart = this.add.image(25 + (i * 35), 25, texture).setScrollFactor(0);
       this.hearts.push(heart);
     }
   }
@@ -154,15 +173,9 @@ export default class HelloWorldScene extends Phaser.Scene {
     const spawnX = this.nextEggX !== null ? this.nextEggX : Phaser.Math.Between(50, 750);
     this.nextEggX = null;
     if (this.nextEggWarning) this.nextEggWarning.setVisible(false);
-    const egg = this.eggs.create(spawnX, -20, null);
-    const eggTextureKey = "egg-texture";
-    const eggW = 16, eggH = 16;
-    const eggGraphics = this.make.graphics({ x: 0, y: 0, add: false });
-    eggGraphics.fillStyle(0xFF0000, 1); eggGraphics.fillCircle(8, 8, 8);
-    eggGraphics.generateTexture(eggTextureKey, eggW, eggH); eggGraphics.destroy();
-    egg.setTexture(eggTextureKey); egg.setOrigin(0.5, 0.5); egg.setDisplaySize(eggW, eggH);
-    if (egg.body) { egg.body.setSize(eggW, eggH); egg.body.setOffset(0, 0); }
-    egg.setVelocityY(this.currentEggSpeed); egg.setBounce(0.3); egg.isOnGround = false; egg.birthTime = this.time.now;
+    const egg = this.eggs.create(spawnX, -20, 'egg-texture');
+    egg.setVelocityY(this.currentEggSpeed).setBounce(0.3);
+    egg.isOnGround = false; egg.birthTime = this.time.now;
     this.showNextEggWarning();
     this.time.delayedCall(this.currentEggDelay, this.spawnEgg, [], this);
   }
@@ -219,10 +232,14 @@ export default class HelloWorldScene extends Phaser.Scene {
   }
 
   create() {
+    const { width, height } = this.scale;
+    this.createTextures();
     this.cameras.main.setBackgroundColor("#87CEEB");
+
+    // Plataformas
     this.platforms = this.physics.add.staticGroup();
-    this.platforms.create(400, 590, null).setDisplaySize(800, 40).refreshBody();
-    this.add.rectangle(400, 590, 800, 40, 0x228B22);
+    this.platforms.create(width / 2, height - 10, null).setDisplaySize(width, 40).refreshBody();
+    this.add.rectangle(width / 2, height - 10, width, 40, 0x228B22);
     [ [150,480,200],[400,400,200],[650,480,200],[400,300,200],[150,200,200],[650,200,200] ].forEach(p => {
       this.platforms.create(p[0], p[1], null).setDisplaySize(p[2], 30).refreshBody();
       this.add.rectangle(p[0], p[1], p[2], 30, 0x00FF00);
@@ -236,9 +253,9 @@ export default class HelloWorldScene extends Phaser.Scene {
     this.citizens = this.physics.add.group({ allowGravity: false, immovable: true });
     const cG = this.make.graphics({ x: 0, y: 0, add: false }); cG.fillStyle(0xFFFF00, 1); cG.fillRect(0, 0, 24, 24); cG.generateTexture("citizen-texture", 24, 24); cG.destroy();
 
-    this.savePromptText = this.add.text(400, 560, "", { fontSize: "18px", fill: "#ffffff", fontFamily: "Arial" }).setOrigin(0.5, 0.5).setScrollFactor(0);
-    this.scoreText = this.add.text(780, 20, "Puntaje: 0", { fontSize: "18px", fill: "#ffffff", fontFamily: "Arial", stroke: "#000000", strokeThickness: 3 }).setOrigin(1, 0).setScrollFactor(0);
-    this.levelTimerText = this.add.text(400, 10, "01:00", { fontSize: "22px", fill: "#ffffff", fontFamily: "Arial", stroke: "#000000", strokeThickness: 3 }).setOrigin(0.5, 0).setScrollFactor(0);
+    this.savePromptText = this.add.text(width / 2, height - 40, "", { fontSize: "18px", fill: "#ffffff", fontFamily: "Arial" }).setOrigin(0.5, 0.5).setScrollFactor(0);
+    this.scoreText = this.add.text(width - 20, 20, "Puntaje: 0", { fontSize: "18px", fill: "#ffffff", fontFamily: "Arial", stroke: "#000000", strokeThickness: 3 }).setOrigin(1, 0).setScrollFactor(0);
+    this.levelTimerText = this.add.text(width / 2, 10, "01:00", { fontSize: "22px", fill: "#ffffff", fontFamily: "Arial", stroke: "#000000", strokeThickness: 3 }).setOrigin(0.5, 0).setScrollFactor(0);
 
     this.createPauseUI();
     this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);

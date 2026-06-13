@@ -6,11 +6,12 @@ export default class GameOverScene extends Phaser.Scene {
   create(data) {
     const finalScore = data.score || 0;
     const rescuedCount = data.rescued || 0;
+    const { width, height } = this.scale;
     // Fondo negro para dar el efecto de Game Over
     this.cameras.main.setBackgroundColor("#000000");
 
     // Texto de "GAME OVER"
-    const gameOverText = this.add.text(400, 200, "GAME OVER", {
+    const gameOverText = this.add.text(width / 2, height * 0.33, "GAME OVER", {
       fontSize: "64px",
       fontStyle: "bold",
       fill: "#ff0000",
@@ -21,7 +22,7 @@ export default class GameOverScene extends Phaser.Scene {
     gameOverText.setOrigin(0.5, 0.5);
 
     // Etiqueta de puntuación obtenida
-    const scoreText = this.add.text(400, 240, `Puntuación final: ${finalScore}`, {
+    const scoreText = this.add.text(width / 2, height * 0.4, `Puntuación final: ${finalScore}`, {
       fontSize: "26px",
       fill: "#ffffff",
       fontFamily: "Arial",
@@ -29,7 +30,7 @@ export default class GameOverScene extends Phaser.Scene {
     scoreText.setOrigin(0.5, 0.5);
 
     // Contador de ciudadanos rescatados
-    const rescuedText = this.add.text(400, 300, `Ciudadanos rescatados: ${rescuedCount}`, {
+    const rescuedText = this.add.text(width / 2, height * 0.5, `Ciudadanos rescatados: ${rescuedCount}`, {
       fontSize: "26px",
       fill: "#ffff00", 
       fontFamily: "Arial",
@@ -37,11 +38,11 @@ export default class GameOverScene extends Phaser.Scene {
     rescuedText.setOrigin(0.5, 0.5);
 
     // Botón para volver al menú
-    const menuButton = this.add.rectangle(400, 400, 300, 60, 0xffffff);
+    const menuButton = this.add.rectangle(width / 2, height * 0.67, 300, 60, 0xffffff);
     menuButton.setInteractive();
 
     // Texto del botón
-    const menuText = this.add.text(400, 400, "Volver al Menú", {
+    const menuText = this.add.text(width / 2, height * 0.67, "Volver al Menú", {
       fontSize: "28px",
       fontStyle: "bold",
       fill: "#000000",

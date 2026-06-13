@@ -10,8 +10,14 @@ export default class Level3Scene extends Phaser.Scene {
     const resumeText = this.add.text(400, 320, 'Volver al juego', { fontSize: '20px', fill: '#000000' }).setOrigin(0.5);
     const menuRect = this.add.rectangle(400, 390, 220, 50, 0xaa0000).setInteractive();
     const menuText = this.add.text(400, 390, 'Menu Principal', { fontSize: '20px', fill: '#000000' }).setOrigin(0.5);
-    resumeRect.on('pointerup', () => this.resumeGame()); menuRect.on('pointerup', () => this.goToMainMenu());
-    this.pauseContainer = this.add.container(0, 0, [bg, box, resumeRect, resumeText, menuRect, menuText]).setDepth(1000).setVisible(false);
+    
+    resumeRect.on('pointerup', () => this.resumeGame()); 
+    menuRect.on('pointerup', () => this.goToMainMenu());
+
+    this.pauseContainer = this.add.container(0, 0, [
+      bg, box, resumeRect, resumeText, menuRect, menuText
+    ]);
+    this.pauseContainer.setDepth(1000).setVisible(false);
   }
 
   togglePause() {
@@ -20,11 +26,25 @@ export default class Level3Scene extends Phaser.Scene {
     else this.resumeGame();
   }
 
-  resumeGame() { this.isPaused = false; this.physics.world.resume(); this.time.timeScale = 1; this.pauseContainer.setVisible(false); }
-  goToMainMenu() { this.physics.world.resume(); this.time.timeScale = 1; this.scene.start('title'); }
+  resumeGame() { 
+    this.isPaused = false; 
+    this.physics.world.resume(); 
+    this.time.timeScale = 1; 
+    this.pauseContainer.setVisible(false); 
+  }
+
+  goToMainMenu() { 
+    this.physics.world.resume(); 
+    this.time.timeScale = 1; 
+    this.scene.start('title'); 
+  }
 
   onLevelComplete() {
-    if (this.levelComplete) return; this.levelComplete = true; this.isPaused = true; this.physics.world.pause(); this.time.timeScale = 0;
+    if (this.levelComplete) return; 
+    this.levelComplete = true; 
+    this.isPaused = true; 
+    this.physics.world.pause(); 
+    this.time.timeScale = 0;
     const bg = this.add.rectangle(400, 300, 640, 480, 0x000000, 0.85).setDepth(1001);
     this.add.text(400, 130, '¡JUEGO COMPLETADO!', { fontSize: '42px', fill: '#ffff00', fontStyle: 'bold', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5).setDepth(1001);
     this.add.text(400, 190, `Puntuación final: ${this.score}`, { fontSize: '26px', fill: '#fff', stroke: '#000', strokeThickness: 2 }).setOrigin(0.5).setDepth(1001);
