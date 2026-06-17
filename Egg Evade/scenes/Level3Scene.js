@@ -82,6 +82,29 @@ export default class Level3Scene extends Phaser.Scene {
   init(data) {
     this.health = data?.health ?? 3; this.score = data?.score ?? 0; this.lives = data?.lives ?? 3;
     this.rescuedCitizens = data?.rescued ?? 0; this.levelTime = 180000; this.currentEggDelay = 5000; this.currentEggSpeed = 150;
+    this.nextEggWarning = null; this.nextEggX = null; this.hearts = []; this.lastHitTime = 0; this.damageCooldown = 1000;
+    this.nextHealthScoreThreshold = (Math.floor(this.score / 10000) + 1) * 10000;
+  }
+
+  dibujarVidas() {
+    this.hearts.forEach(h => h.destroy()); this.hearts = [];
+    for (let i = 0; i < Math.max(this.health, 3); i++) {
+      const g = this.make.graphics({ x: 0, y: 0, add: false });
+      g.fillStyle(i < this.health ? 0xFF0000 : 0x888888, 1);
+      g.fillCircle(4, 4, 4); g.fillCircle(10, 4, 4);
+      g.fillTriangleShape([{x:2,y:8},{x:12,y:8},{x:7,y:14}]);
+      g.generateTexture(`heart-l3-${i}`, 14, 14); g.destroy();
+      this.hearts.push(this.add.image(25 + (i * 35), 25, `heart-l3-${i}`).setScrollFactor(0));
+    }
+  }
+
+  perderVida() {
+    if (this.health > 0) { this.health--; this.dibujarVidas(); }
+    if (this.health <= 0) {
+      this.lives--; if (this.livesText) this.livesText.setText(`Vidas: ${this.lives}`);
+      if (this.lives > 0) { this.health = 3; this.dibujarVidas(); }
+      else this.scene.start('game-over', { score: this.score, rescued: this.rescuedCitizens });
+    }
   }
 
   spawnMiniboss(x, y) {
@@ -100,10 +123,28 @@ export default class Level3Scene extends Phaser.Scene {
   }
 
   spawnEgg() {
-    const x = Phaser.Math.Between(50, 750);
-    const egg = this.eggs.create(x, -20, 'egg-texture');
+    const spawnX = this.nextEggX !== null ? this.nextEggX : Phaser.Math.Between(50, 750);
+    this.nextEggX = null;
+    if (this.nextEggWarning) this.nextEggWarning.setVisible(false);
+
+    const egg = this.eggs.create(spawnX, -20, 'egg-texture');
     egg.setVelocityY(this.currentEggSpeed).setBounce(0.3); egg.birthTime = this.time.now;
+    this.showNextEggWarning();
     this.time.delayedCall(this.currentEggDelay, this.spawnEgg, [], this);
+  }
+
+  showNextEggWarning() {
+    const warningX = Phaser.Math.Between(50, 750);
+    this.nextEggX = warningX;
+    if (!this.nextEggWarning) {
+      const g = this.make.graphics({ x: 0, y: 0, add: false });
+      g.fillStyle(0xFFFF00, 1); g.fillRect(0, 0, 20, 20);
+      g.fillStyle(0x000000, 1); g.fillRect(9, 4, 2, 9); g.fillCircle(10, 16, 2);
+      g.generateTexture("warning-icon", 20, 20); g.destroy();
+      this.nextEggWarning = this.add.image(warningX, 60, "warning-icon").setOrigin(0.5).setScrollFactor(0).setDepth(10);
+    } else {
+      this.nextEggWarning.setPosition(warningX, 60).setVisible(true);
+    }
   }
 
   spawnCitizen() {
@@ -118,14 +159,18 @@ export default class Level3Scene extends Phaser.Scene {
     if (chick.body) {
       chick.body.setGravityY(200);
       chick.body.setSize(14, 14, true);
+      chick.body.onWorldBounds = true;
     }
+    chick.flipCooldown = 0;
     egg.destroy();
   }
 
   cambiarPuntaje(p) {
-    this.score = Math.max(0, this.score + p); 
+    this.score += p; 
     if (this.scoreText) this.scoreText.setText(`Puntaje: ${this.score}`);
-    if (this.score % 10000 === 0) { this.health++; }
+    while (this.score >= this.nextHealthScoreThreshold) { 
+      this.health++; this.dibujarVidas(); this.nextHealthScoreThreshold += 10000; 
+    }
   }
 
   handleMinibossCollision(player, boss) {
@@ -160,13 +205,29 @@ export default class Level3Scene extends Phaser.Scene {
 
     this.eggs = this.physics.add.group(); 
     this.chickens = this.physics.add.group(); 
-    this.citizens = this.physics.add.group();
+    this.citizens = this.physics.add.group({ allowGravity: false, immovable: true });
     
     this.physics.add.collider(this.eggs, this.platforms, e => e.isOnGround = true);
-    this.physics.add.collider(this.chickens, this.platforms, c => { if (c.body.blocked.left || c.body.blocked.right) { c.direction *= -1; c.setVelocityX(120 * c.direction); } });
+    this.physics.add.collider(this.chickens, this.platforms, c => {
+      if (this.time.now - (c.flipCooldown || 0) > 100) {
+        if (c.body.blocked.left || c.body.blocked.right) {
+          c.direction *= -1; c.setVelocityX(120 * c.direction); c.flipCooldown = this.time.now;
+        }
+      }
+    });
+
+    this.physics.world.on('worldbounds', (body) => {
+      const chicken = body.gameObject;
+      if (!chicken || chicken.texture.key !== 'chicken-texture') return;
+      if (this.time.now - (chicken.flipCooldown || 0) > 100) {
+        chicken.direction *= -1; chicken.setVelocityX(120 * chicken.direction); chicken.flipCooldown = this.time.now;
+      }
+    });
+
     this.physics.add.overlap(this.player, this.eggs, (p, e) => { if (p.body.touching.down && e.body.touching.up) { e.destroy(); this.cambiarPuntaje(500); } else if (!e.isOnGround) this.aplicarDaño(); });
     this.physics.add.overlap(this.player, this.chickens, (p, c) => { if (p.body.touching.down && c.body.touching.up) c.destroy(); else this.aplicarDaño(); });
     this.physics.add.overlap(this.eggs, this.citizens, (e, c) => { e.destroy(); c.destroy(); this.cambiarPuntaje(-500); });
+    this.physics.add.overlap(this.chickens, this.citizens, (ch, c) => { c.destroy(); this.cambiarPuntaje(-500); });
 
     this.savePromptText = this.add.text(400, 560, "", { fontSize: "18px", fill: "#ffffff", fontFamily: "Arial" }).setOrigin(0.5, 0.5).setScrollFactor(0);
     this.scoreText = this.add.text(780, 20, `Puntaje: ${this.score}`, { fontSize: '18px', fill: '#fff', stroke: '#000', strokeThickness: 3 }).setOrigin(1, 0).setScrollFactor(0);
@@ -182,12 +243,13 @@ export default class Level3Scene extends Phaser.Scene {
     this.time.addEvent({ delay: 20000, callback: this.spawnCitizen, callbackScope: this, loop: true });
     this.cursors = this.input.keyboard.createCursorKeys(); this.zKey = this.input.keyboard.addKey('Z'); this.sKey = this.input.keyboard.addKey('S');
     this.createPauseUI(); this.input.keyboard.addKey('ENTER').on('down', () => this.togglePause());
+    this.dibujarVidas();
   }
 
   aplicarDaño() {
-    if (this.time.now - this.lastHitTime < 1000) return;
+    if (this.time.now - this.lastHitTime < this.damageCooldown) return;
     this.lastHitTime = this.time.now; this.player.setAlpha(0.5);
-    this.health--; if (this.health <= 0) { this.lives--; if (this.lives > 0) this.health = 3; else this.scene.start('game-over', { score: this.score }); }
+    this.perderVida();
   }
 
   update(t, d) {

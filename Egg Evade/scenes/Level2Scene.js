@@ -49,6 +49,7 @@ export default class Level2Scene extends Phaser.Scene {
     this.nextHealthScoreThreshold = (Math.floor(this.score / 10000) + 1) * 10000;
     this.levelTime = 120000; this.isPaused = false; this.levelComplete = false;
     this.currentEggDelay = 5000; this.currentEggSpeed = 150; this.hearts = []; this.lastHitTime = 0; this.damageCooldown = 1000;
+    this.nextEggWarning = null; this.nextEggX = null;
   }
 
   dibujarVidas() {
@@ -71,15 +72,33 @@ export default class Level2Scene extends Phaser.Scene {
   }
 
   cambiarPuntaje(p) {
-    this.score = Math.max(0, this.score + p); if (this.scoreText) this.scoreText.setText(`Puntaje: ${this.score}`);
+    this.score += p; if (this.scoreText) this.scoreText.setText(`Puntaje: ${this.score}`);
     while (this.score >= this.nextHealthScoreThreshold) { this.health++; this.dibujarVidas(); this.nextHealthScoreThreshold += 10000; }
   }
 
   spawnEgg() {
-    const x = Phaser.Math.Between(50, 750);
-    const egg = this.eggs.create(x, -20, 'egg-texture');
+    const spawnX = this.nextEggX !== null ? this.nextEggX : Phaser.Math.Between(50, 750);
+    this.nextEggX = null;
+    if (this.nextEggWarning) this.nextEggWarning.setVisible(false);
+
+    const egg = this.eggs.create(spawnX, -20, 'egg-texture');
     egg.setVelocityY(this.currentEggSpeed).setBounce(0.3); egg.birthTime = this.time.now;
+    this.showNextEggWarning();
     this.time.delayedCall(this.currentEggDelay, this.spawnEgg, [], this);
+  }
+
+  showNextEggWarning() {
+    const warningX = Phaser.Math.Between(50, 750);
+    this.nextEggX = warningX;
+    if (!this.nextEggWarning) {
+      const g = this.make.graphics({ x: 0, y: 0, add: false });
+      g.fillStyle(0xFFFF00, 1); g.fillRect(0, 0, 20, 20);
+      g.fillStyle(0x000000, 1); g.fillRect(9, 4, 2, 9); g.fillCircle(10, 16, 2);
+      g.generateTexture("warning-icon", 20, 20); g.destroy();
+      this.nextEggWarning = this.add.image(warningX, 60, "warning-icon").setOrigin(0.5).setScrollFactor(0).setDepth(10);
+    } else {
+      this.nextEggWarning.setPosition(warningX, 60).setVisible(true);
+    }
   }
 
   spawnCitizen() {
@@ -103,7 +122,9 @@ export default class Level2Scene extends Phaser.Scene {
     if (chick.body) {
       chick.body.setGravityY(200);
       chick.body.setSize(14, 14, true);
+      chick.body.onWorldBounds = true;
     }
+    chick.flipCooldown = 0;
     egg.destroy();
   }
 
@@ -120,11 +141,27 @@ export default class Level2Scene extends Phaser.Scene {
     this.player.setTexture('p-l2').setCollideWorldBounds(true).setBounce(0.2);
     this.physics.add.collider(this.player, this.platforms);
 
-    this.citizens = this.physics.add.group(); this.eggs = this.physics.add.group(); this.chickens = this.physics.add.group();
+    this.citizens = this.physics.add.group({ allowGravity: false, immovable: true }); this.eggs = this.physics.add.group(); this.chickens = this.physics.add.group();
     this.physics.add.collider(this.eggs, this.platforms, e => e.isOnGround = true);
     this.physics.add.overlap(this.player, this.eggs, (p, e) => { if (p.body.touching.down && e.body.touching.up) { e.destroy(); this.cambiarPuntaje(500); } else if (!e.isOnGround) this.aplicarDaño(); });
     this.physics.add.overlap(this.player, this.chickens, (p, c) => { if (p.body.touching.down && c.body.touching.up) c.destroy(); else this.aplicarDaño(); });
-    this.physics.add.collider(this.chickens, this.platforms, c => { if (c.body.blocked.left || c.body.blocked.right) { c.direction *= -1; c.setVelocityX(120 * c.direction); } });
+    this.physics.add.overlap(this.eggs, this.citizens, (e, c) => { e.destroy(); c.destroy(); this.cambiarPuntaje(-500); });
+    this.physics.add.overlap(this.chickens, this.citizens, (ch, c) => { c.destroy(); this.cambiarPuntaje(-500); });
+    this.physics.add.collider(this.chickens, this.platforms, c => {
+      if (this.time.now - (c.flipCooldown || 0) > 100) {
+        if (c.body.blocked.left || c.body.blocked.right) {
+          c.direction *= -1; c.setVelocityX(120 * c.direction); c.flipCooldown = this.time.now;
+        }
+      }
+    });
+
+    this.physics.world.on('worldbounds', (body) => {
+      const chicken = body.gameObject;
+      if (!chicken || chicken.texture.key !== 'ch-l2') return;
+      if (this.time.now - (chicken.flipCooldown || 0) > 100) {
+        chicken.direction *= -1; chicken.setVelocityX(120 * chicken.direction); chicken.flipCooldown = this.time.now;
+      }
+    });
 
     this.savePromptText = this.add.text(400, 560, "", { fontSize: "18px", fill: "#ffffff", fontFamily: "Arial" }).setOrigin(0.5, 0.5).setScrollFactor(0);
     this.scoreText = this.add.text(780, 20, `Puntaje: ${this.score}`, { fontSize: '18px', fill: '#ffffff', stroke: '#000000', strokeThickness: 3 }).setOrigin(1, 0).setScrollFactor(0);
